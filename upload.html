@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker - Upload</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* General Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        /* Font size adjustments for mobile screens */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            /* Hide the table headers */
+            thead tr {
+                display: none;
+            }
+
+            tr {
+                margin-bottom: 15px;
+            }
+
+            td {
+                text-align: right;
+                position: relative;
+                padding-left: 50%;
+                font-size: 12px;
+                /* Reduce font size for smaller screens */
+            }
+
+            /* Add labels to each row for readability on small screens */
+            td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                font-weight: bold;
+                font-size: 12px;
+                /* Reduced font size for labels */
+            }
+
+            /* Make the buttons responsive */
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Additional reduction for very small screens (e.g., 375px width) */
+        @media (max-width: 375px) {
+            body {
+                font-size: 12px;
+                /* Further reduce font size for small screens */
+            }
+
+            td {
+                font-size: 11px;
+                /* Make text smaller to avoid overlap */
+            }
+
+            td:before {
+                font-size: 11px;
+                /* Adjust label font size accordingly */
+            }
+        }
+    </style>
+    <script src="xlsx.full.js"></script>
+</head>
+
+<body>
+    <div class="bg-success px-4 py-3">
+        <h2 class="text-light">Attendance Tracker - Upload Attendance File</h2>
+    </div>
+    <div class="p-3">
+        <div>
+            <button id="uploadFileBtn" class="btn btn-primary">Upload Attendance File</button>
+            <button id="saveBtn" class="btn btn-success">Save as XLSX</button>
+        </div>
+
+        <table id="attendanceTable" class="table table-bordered rounded my-4">
+            <thead>
+                <tr class="text-center">
+                    <th>Action</th>
+                    <th>Fingerprint Data</th>
+                    <th>Student Name</th>
+                    <th>Student Number</th>
+                    <th>Section</th>
+                    <th>Present</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody class="text-center">
+                <!-- Rows will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('uploadFileBtn').addEventListener('click', function () {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.xlsx';
+            fileInput.onchange = async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const data = await file.arrayBuffer();
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    document.querySelector('#attendanceTable tbody').innerHTML = '';
+
+                    jsonData.forEach((row, index) => {
+                        if (index === 0) return;
+                        const newRow = document.createElement('tr');
+                        newRow.innerHTML = `
+                            <td data-label=""><button class="matchBtn btn">Match Fingerprint</button></td>
+                            <td data-label="Fingerprint Data" id="fData">${row[0]}</td>
+                            <td data-label="Student Name"><input type="text" value="${row[1] || ''}" placeholder="Enter Student Name"></td>
+                            <td data-label="Student Number"><input type="text" value="${row[2] || ''}" placeholder="Enter Student Number"></td>
+                            <td data-label="Section"><input type="text" value="${row[3] || ''}" placeholder="Enter Section"></td>
+                            <td data-label="Present"><input type="checkbox" class="presentCheckbox" ${row[4] === "Present" ? "checked" : ""}></td>
+                            <td data-label="Date">${new Date().toLocaleDateString()}</td>
+                        `;
+                        document.querySelector('#attendanceTable tbody').appendChild(newRow);
+                    });
+                }
+            };
+            fileInput.click();
+        });
+
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('matchBtn')) {
+                const row = e.target.closest('tr');
+                const fingerprintData = row.cells[1].innerText;
+                const presentCheckbox = row.querySelector('.presentCheckbox');
+
+                if (fingerprintData && !presentCheckbox.checked) {
+                    presentCheckbox.checked = true;
+                }
+            }
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', function () {
+            const workbook = XLSX.utils.book_new();
+            const worksheetData = [];
+            const rows = document.querySelectorAll('#attendanceTable tbody tr');
+
+            rows.forEach((row) => {
+                const cells = row.querySelectorAll('td');
+                const rowData = [
+                    cells[1].innerText, // Fingerprint Data
+                    cells[2].querySelector('input').value, // Student Name
+                    cells[3].querySelector('input').value, // Student Number
+                    cells[4].querySelector('input').value, // Section
+                    cells[5].querySelector('input').checked ? "Present" : "", // Present
+                    cells[6].innerText // Date
+                ];
+                worksheetData.push(rowData);
+            });
+
+            const worksheet = XLSX.utils.aoa_to_sheet([['Fingerprint Data', 'Student Name', 'Student Number', 'Section', 'Present', 'Date'], ...worksheetData]);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+            XLSX.writeFile(workbook, 'attendance_data.xlsx');
+        });
+    </script>
+</body>
+
+</html>

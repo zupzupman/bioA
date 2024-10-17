@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker - Attendance</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* General Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        /* Font size adjustments for mobile screens */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            /* Hide the table headers */
+            thead tr {
+                display: none;
+            }
+
+            tr {
+                margin-bottom: 15px;
+            }
+
+            td {
+                text-align: right;
+                position: relative;
+                font-size: 12px;
+                /* Reduce font size for smaller screens */
+            }
+
+            /* Add labels to each row for readability on small screens */
+            td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                font-weight: bold;
+                font-size: 12px;
+                /* Reduced font size for labels */
+            }
+
+            /* Make the buttons responsive */
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Additional reduction for very small screens (e.g., 375px width) */
+        @media (max-width: 375px) {
+            body {
+                font-size: 12px;
+                /* Further reduce font size for small screens */
+            }
+
+            td {
+                font-size: 11px;
+                /* Make text smaller to avoid overlap */
+            }
+
+            td:before {
+                font-size: 11px;
+                /* Adjust label font size accordingly */
+            }
+        }
+    </style>
+    <script src="xlsx.full.js"></script>
+</head>
+
+<body>
+    <div class="bg-primary px-4 py-3">
+        <h2 class="text-light">Attendance Tracker - Attendance</h2>
+    </div>
+    <div class="p-3">
+        <div>
+            <button id="addFingerprintBtn" class="btn btn-primary">Add Fingerprint Data</button>
+            <button id="saveBtn" class="btn btn-success">Save as XLSX</button>
+        </div>
+        <table id="attendanceTable" class="table table-bordered rounded my-4">
+            <thead>
+                <tr class="text-center">
+                    <th>Fingerprint Data</th>
+                    <th>Student Name</th>
+                    <th>Student Number</th>
+                    <th>Section</th>
+                    <th>Present</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody class="text-center">
+                <!-- Rows will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Function to simulate adding fingerprint data
+        document.getElementById('addFingerprintBtn').addEventListener('click', function () {
+            const fingerprintData = Array.from({ length: 8 }, () => Math.floor(Math.random() * 256));
+            const currentDate = new Date().toLocaleDateString();
+            const newRow = document.createElement('tr');
+
+            newRow.innerHTML = `
+                <td data-label="Fingerprint Data" id="fData">${fingerprintData.join(', ')}</td>
+                <td data-label="Student Name"><input type="text" placeholder="Enter Student Name"></td>
+                <td data-label="Student Number"><input type="text" placeholder="Enter Student Number"></td>
+                <td data-label="Section"><input type="text" placeholder="Enter Section"></td>
+                <td data-label="Present"><input type="checkbox" class="presentCheckbox"></td>
+                <td data-label="Date">${currentDate}</td>
+            `;
+
+            document.querySelector('#attendanceTable tbody').appendChild(newRow);
+        });
+
+        // Function to save attendance data as XLSX
+        document.getElementById('saveBtn').addEventListener('click', function () {
+            const workbook = XLSX.utils.book_new();
+            const worksheetData = [];
+            const rows = document.querySelectorAll('#attendanceTable tbody tr');
+
+            rows.forEach((row) => {
+                const cells = row.querySelectorAll('td');
+                const rowData = [
+                    cells[0].innerText,  // Fingerprint Data
+                    cells[1].querySelector('input').value,  // Student Name
+                    cells[2].querySelector('input').value,  // Student Number
+                    cells[3].querySelector('input').value,  // Section
+                    cells[4].querySelector('input').checked ? "Present" : "",  // Present checkbox
+                    cells[5].innerText  // Date
+                ];
+                worksheetData.push(rowData);
+            });
+
+            const worksheet = XLSX.utils.aoa_to_sheet([['Fingerprint Data', 'Student Name', 'Student Number', 'Section', 'Present', 'Date'], ...worksheetData]);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+            XLSX.writeFile(workbook, 'attendance_data.xlsx');
+        });
+    </script>
+</body>
+
+</html>
